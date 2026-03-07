@@ -1,0 +1,66 @@
+# QC Analysis Thresholds
+# Values that determine PASS / WARN / FAIL status for each check
+
+broadcast_legality:
+  # Rec.709 legal ranges (8-bit values)
+  ymin_legal: 16
+  ymax_legal: 235
+  umin_legal: 16
+  umax_legal: 240
+  vmin_legal: 16
+  vmax_legal: 240
+  # Maximum number of illegal frames before FAIL
+  max_illegal_frames: 0  # strict: any illegal frame is a FAIL
+  # WARN threshold (frames with near-illegal values)
+  warn_ymin: 18
+  warn_ymax: 232
+
+black_frames:
+  # blackdetect parameters
+  black_min_duration: 0.04  # seconds (single frame at 25fps)
+  picture_black_ratio_th: 0.98
+  pixel_threshold: 0.10
+  # Maximum allowed black frame duration (seconds)
+  max_total_black_duration: 0.0  # any black = FAIL
+  warn_total_black_duration: 0.0
+
+frozen_frames:
+  # freezedetect parameters
+  noise_threshold: 0.001
+  min_duration: 0.08  # 2 frames at 25fps
+  # Thresholds
+  max_freeze_duration: 0.5  # FAIL if any freeze > this
+  warn_freeze_duration: 0.08  # WARN for brief freezes
+
+flash_frames:
+  # Scene change detection threshold
+  scene_score_threshold: 0.4
+  # Maximum flash frames allowed
+  max_flash_frames: 0  # any = WARN (not auto-correctable)
+
+interlacing:
+  # Any interlaced frames detected = FAIL for AI content
+  max_interlaced_frames: 0
+
+audio_loudness:
+  # EBU R128 targets
+  target_lufs: -23.0
+  lufs_tolerance: 1.0  # +/- 1.0 LU
+  max_true_peak_dbtp: -1.0
+  # ATSC A/85 alternative
+  atsc_target_lkfs: -24.0
+  atsc_tolerance: 2.0
+
+silence:
+  # silencedetect parameters
+  noise_threshold_db: -50  # dB
+  min_duration: 0.5  # seconds
+  # Maximum total silence allowed
+  max_silence_duration: 5.0  # FAIL
+  warn_silence_duration: 2.0  # WARN
+
+crop_letterbox:
+  # cropdetect parameters
+  cropdetect_round: 2
+  # Inconsistency threshold (pixels difference between detected crops)
+  max_crop_variance: 4  # pixels

@@ -1,0 +1,41 @@
+# AI Video QC Pipeline - Master Configuration
+# Version 1.0
+
+# Pipeline root directory (all paths relative to this)
+pipeline_root: "."
+
+# Processing options
+auto_correct: true
+output_tier: "standard"  # "standard", "premium", or "both"
+
+# Output codec settings
+output_codec: "prores_ks -profile:v 3"  # ProRes 422 HQ
+output_bit_depth: "10"
+output_pixel_format: "yuv422p10le"
+
+# Frame rate
+frame_rate_target: 25.0  # PAL broadcast
+
+# LUT file paths (relative to pipeline_root)
+lut_standard: "config/luts/rec709_to_log.cube"
+lut_premium: "config/luts/hdr_to_log.cube"
+
+# Audio loudness standard
+loudness_standard: "ebu_r128"  # "ebu_r128" or "atsc_a85"
+loudness_target_lufs: -23.0
+loudness_target_lra: 7.0
+loudness_target_tp: -1.0
+
+# DaVinci Resolve settings (premium tier)
+resolve_project_name: "AI_QC_Pipeline"
+resolve_render_preset: "ProRes 422 HQ"
+
+# Topaz monitoring
+topaz_watch_interval: 30  # seconds between polls
+
+# Hardware acceleration (set to null to disable)
+hwaccel: null  # "cuda", "qsv", or null
+
+# Report settings
+extract_thumbnails: true
+thumbnail_quality: 2  # JPEG quality (2 = high quality)
