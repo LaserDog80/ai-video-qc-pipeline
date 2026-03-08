@@ -9,7 +9,7 @@
 
 <!-- Update this section when the project scope changes -->
 
-[Project name and one-line description]
+AI Video QC Pipeline — Automated quality control, correction, and Rec.709-to-log conversion pipeline for AI-generated video, targeting broadcast and professional grading workflows.
 
 ---
 
