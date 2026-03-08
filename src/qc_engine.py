@@ -520,9 +520,11 @@ def extract_thumbnail(
 ) -> Optional[Path]:
     """Extract a single frame as JPEG at the given timecode."""
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    # FFmpeg -ss doesn't accept drop-frame semicolons — convert to colons
+    seek_time = timecode.replace(";", ":")
     cmd = [
         "ffmpeg", "-hide_banner", "-y",
-        "-ss", timecode,
+        "-ss", seek_time,
         "-i", str(filepath),
         "-frames:v", "1",
         "-q:v", str(quality),
