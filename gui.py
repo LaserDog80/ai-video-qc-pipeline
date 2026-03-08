@@ -7,6 +7,7 @@ Launch with:
 
 import logging
 import queue
+import shutil
 import threading
 import tkinter as tk
 from datetime import datetime
@@ -54,8 +55,18 @@ class PipelineGUI:
     def _build_ui(self) -> None:
         pad = {"padx": 8, "pady": 4}
 
+        # --- Project folder (where all outputs go) ---
+        frame_project = ttk.LabelFrame(self.root, text="Project Folder (reports, thumbnails, corrected clips)")
+        frame_project.pack(fill="x", **pad)
+
+        self.project_var = tk.StringVar()
+        self.project_entry = ttk.Entry(frame_project, textvariable=self.project_var, state="readonly")
+        self.project_entry.pack(side="left", fill="x", expand=True, padx=(8, 4), pady=6)
+        self.project_btn = ttk.Button(frame_project, text="Browse\u2026", command=self._browse_project)
+        self.project_btn.pack(side="right", padx=(4, 8), pady=6)
+
         # --- Batch directory ---
-        frame_batch = ttk.LabelFrame(self.root, text="Batch Directory")
+        frame_batch = ttk.LabelFrame(self.root, text="Batch Directory (input video files)")
         frame_batch.pack(fill="x", **pad)
 
         self.batch_var = tk.StringVar()
@@ -141,6 +152,11 @@ class PipelineGUI:
 
     # ------------------------------------------------------------ Actions
 
+    def _browse_project(self) -> None:
+        path = filedialog.askdirectory(title="Select project folder for outputs")
+        if path:
+            self.project_var.set(path)
+
     def _browse_batch(self) -> None:
         path = filedialog.askdirectory(title="Select batch directory")
         if path:
@@ -160,6 +176,11 @@ class PipelineGUI:
         self.log_text.configure(state="disabled")
 
     def _start_pipeline(self) -> None:
+        project_folder = self.project_var.get().strip()
+        if not project_folder:
+            messagebox.showerror("Error", "Please select a project folder for outputs.")
+            return
+
         batch = self.batch_var.get().strip()
         if not batch:
             messagebox.showerror("Error", "Please select a batch directory.")
@@ -194,6 +215,10 @@ class PipelineGUI:
             self.root.event_generate("<<PipelineError>>")
             return
 
+        # Override pipeline_root with user-chosen project folder
+        project_folder = Path(self.project_var.get())
+        config.pipeline_root = project_folder
+
         log_dir = config.pipeline_root / "logs"
         log_dir.mkdir(parents=True, exist_ok=True)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -210,8 +235,18 @@ class PipelineGUI:
             thresholds = load_qc_thresholds(self.thresh_var.get())
             ensure_directories(config.pipeline_root)
 
+            # Clean old thumbnails for this batch to prevent bloat
+            batch_dir = Path(self.batch_var.get())
+            batch_id = batch_dir.name
+            thumbs_dir = config.pipeline_root / "reports" / "thumbs" / batch_id
+            if thumbs_dir.exists():
+                shutil.rmtree(thumbs_dir)
+                logging.getLogger("pipeline").info(
+                    "Cleared previous thumbnails: %s", thumbs_dir,
+                )
+
             run_pipeline(
-                batch_dir=Path(self.batch_var.get()),
+                batch_dir=batch_dir,
                 config=config,
                 thresholds=thresholds,
                 qc_only=self.qc_only_var.get(),
@@ -253,6 +288,7 @@ class PipelineGUI:
     def _set_controls(self, enabled: bool) -> None:
         state = "normal" if enabled else "disabled"
         readonly_state = "readonly" if enabled else "disabled"
+        self.project_btn.configure(state=state)
         self.browse_btn.configure(state=state)
         self.run_btn.configure(state=state)
         self.tier_combo.configure(state=readonly_state)
