@@ -13,6 +13,7 @@ Usage:
 import argparse
 import json
 import logging
+import shutil
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -99,6 +100,12 @@ def run_pipeline(
         project, batch_id, len(clips), tier,
     )
 
+    # Clear old thumbnails for this batch to prevent bloat across runs
+    thumbs_dir = root / "reports" / "thumbs" / batch_id
+    if thumbs_dir.exists():
+        shutil.rmtree(thumbs_dir)
+        logger.info("Cleared previous thumbnails: %s", thumbs_dir)
+
     # Stage 1: QC Analysis
     qc_reports: list[QCReport] = []
     qc_dicts: list[dict] = []
@@ -172,7 +179,8 @@ def run_pipeline(
 
     # Stage 3: Standard Log Conversion
     if tier in ("standard", "both"):
-        lut_path = root / config.lut_standard
+        # LUT files ship with the app, so resolve relative to app_root
+        lut_path = config.app_root / config.lut_standard
         if not lut_path.exists():
             logger.warning(
                 "Standard LUT not found at %s — skipping log conversion. "
@@ -269,6 +277,11 @@ def parse_args() -> argparse.Namespace:
         help="Disable automatic correction",
     )
     parser.add_argument(
+        "--output", default=None,
+        help="Project folder for all outputs (reports, thumbnails, corrected clips, logs). "
+             "Overrides pipeline_root from config.",
+    )
+    parser.add_argument(
         "--config", default="config/pipeline_config.yaml",
         help="Path to pipeline configuration file",
     )
@@ -285,6 +298,9 @@ def main() -> None:
 
     config = load_pipeline_config(args.config)
     thresholds = load_qc_thresholds(args.thresholds)
+
+    if args.output:
+        config.pipeline_root = Path(args.output)
 
     setup_logging(config.pipeline_root / "logs")
 
