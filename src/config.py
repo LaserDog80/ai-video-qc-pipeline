@@ -12,6 +12,7 @@ class PipelineConfig:
     """Master pipeline configuration."""
 
     pipeline_root: Path
+    app_root: Path = Path(".")  # Where the app code lives (for LUTs, config files)
     auto_correct: bool = True
     output_tier: str = "standard"
     output_codec: str = "prores_ks -profile:v 3"
@@ -56,6 +57,9 @@ def load_pipeline_config(config_path: str = "config/pipeline_config.yaml") -> Pi
         data = yaml.safe_load(f)
 
     data["pipeline_root"] = Path(data.get("pipeline_root", "."))
+    # app_root is where the config file lives (i.e. the app directory)
+    # Used to resolve LUT paths and other app-bundled resources
+    data["app_root"] = path.resolve().parent.parent
     return PipelineConfig(**data)
 
 

@@ -51,28 +51,43 @@ For log conversion, you need a Rec.709-to-log .cube LUT file. The recommended op
 config/luts/rec709_to_log.cube
 ```
 
+LUT files are resolved relative to the **app directory** (where the code lives), not the project folder. This means you only need one copy of your LUTs regardless of how many project folders you use — the pipeline will always find them in the app's `config/luts/` directory.
+
 ## Usage
 
-### QC Analysis Only
+### GUI (Recommended for Testers)
 
-Analyse a batch of clips and generate a report without correcting or converting:
+The GUI provides a point-and-click interface — no command line needed:
 
 ```bash
-python pipeline_orchestrator.py --batch input/project_name/batch_001/ --qc-only
+python gui.py
 ```
 
-### Standard Pipeline (QC + Correction + Log Conversion)
+1. **Project Folder** — Choose a folder where all outputs will be saved (reports, thumbnails, corrected clips, logs). This keeps outputs separate from the source code and input files.
+2. **Batch Directory** — Select the folder containing your input video files.
+3. **Options** — Set tier, toggle QC Only or Auto-Correct as needed.
+4. Click **Run Pipeline** and watch progress in the output pane.
 
-Run the full pipeline with automatic correction enabled:
+Thumbnails from previous runs are automatically cleaned up when you re-run a batch, so the project folder won't accumulate stale files.
+
+### Command Line
+
+#### QC Analysis Only
 
 ```bash
-python pipeline_orchestrator.py --batch input/project_name/batch_001/ --auto-correct --tier standard
+python pipeline_orchestrator.py --batch input/project_name/batch_001/ --output /path/to/project_folder --qc-only
 ```
 
-### Without Automatic Correction
+#### Standard Pipeline (QC + Correction + Log Conversion)
 
 ```bash
-python pipeline_orchestrator.py --batch input/project_name/batch_001/ --no-auto-correct --tier standard
+python pipeline_orchestrator.py --batch input/project_name/batch_001/ --output /path/to/project_folder --auto-correct --tier standard
+```
+
+#### Without Automatic Correction
+
+```bash
+python pipeline_orchestrator.py --batch input/project_name/batch_001/ --output /path/to/project_folder --no-auto-correct --tier standard
 ```
 
 ### Command-Line Options
@@ -80,6 +95,7 @@ python pipeline_orchestrator.py --batch input/project_name/batch_001/ --no-auto-
 | Flag | Description |
 |------|-------------|
 | `--batch PATH` | Path to the batch directory containing video clips (required) |
+| `--output PATH` | Project folder for all outputs (reports, thumbnails, corrected clips, logs) |
 | `--qc-only` | Run QC analysis only — no correction or conversion |
 | `--tier standard\|premium\|both` | Output tier (default: `standard`) |
 | `--auto-correct` | Enable automatic correction of fixable issues |
@@ -89,12 +105,12 @@ python pipeline_orchestrator.py --batch input/project_name/batch_001/ --no-auto-
 
 ### Output
 
-After a run, you'll find:
+All outputs are written to the **project folder** (set via `--output` on the CLI or "Project Folder" in the GUI). If not specified, outputs go to the current directory. After a run, you'll find:
 
 - **Reports** in `reports/` — HTML dashboard and JSON data for each batch
 - **Corrected clips** in `staging/corrected/` — ProRes 422 HQ with fixes applied
 - **Log-converted clips** in `output/standard/` — 10-bit ProRes with log LUT applied
-- **Thumbnails** in `reports/thumbs/` — extracted frames at flagged timecodes
+- **Thumbnails** in `reports/thumbs/` — extracted frames at flagged timecodes (auto-cleaned on re-run)
 - **Logs** in `logs/` — timestamped pipeline logs
 
 ### Configuration
@@ -107,7 +123,8 @@ Edit `config/qc_thresholds.yaml` to adjust pass/fail thresholds for each QC chec
 
 ```
 ai-video-qc-pipeline/
-├── pipeline_orchestrator.py    # Main entry point
+├── gui.py                      # GUI for testers (Tkinter)
+├── pipeline_orchestrator.py    # CLI entry point
 ├── src/
 │   ├── config.py               # Configuration loader
 │   ├── qc_engine.py            # QC analysis (FFmpeg command builder + parser)
