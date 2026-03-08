@@ -8,8 +8,10 @@ Launch with:
 import logging
 import queue
 import shutil
+import subprocess
 import threading
 import tkinter as tk
+import webbrowser
 from datetime import datetime
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
@@ -46,6 +48,8 @@ class PipelineGUI:
 
         self.log_queue: queue.Queue[str] = queue.Queue()
         self.running = False
+        self.last_html_report: Path | None = None
+        self.last_json_report: Path | None = None
 
         self._build_ui()
         self._poll_log_queue()
@@ -133,6 +137,16 @@ class PipelineGUI:
         self.clear_btn = ttk.Button(frame_action, text="Clear Log", command=self._clear_log)
         self.clear_btn.pack(side="left", padx=4)
 
+        self.open_report_btn = ttk.Button(
+            frame_action, text="Open Report", command=self._open_html_report, state="disabled",
+        )
+        self.open_report_btn.pack(side="left", padx=4)
+
+        self.open_folder_btn = ttk.Button(
+            frame_action, text="Open Project Folder", command=self._open_project_folder, state="disabled",
+        )
+        self.open_folder_btn.pack(side="left", padx=4)
+
         self.status_var = tk.StringVar(value="Idle")
         self.status_label = ttk.Label(frame_action, textvariable=self.status_var, foreground="gray")
         self.status_label.pack(side="right", padx=8)
@@ -186,6 +200,15 @@ class PipelineGUI:
         self.log_text.delete("1.0", "end")
         self.log_text.configure(state="disabled")
 
+    def _open_html_report(self) -> None:
+        if self.last_html_report and self.last_html_report.exists():
+            webbrowser.open(self.last_html_report.as_uri())
+
+    def _open_project_folder(self) -> None:
+        folder = self.project_var.get().strip()
+        if folder and Path(folder).is_dir():
+            subprocess.Popen(["open", folder])
+
     def _start_pipeline(self) -> None:
         project_folder = self.project_var.get().strip()
         if not project_folder:
@@ -202,6 +225,10 @@ class PipelineGUI:
 
         self._set_controls(False)
         self._set_status("Running\u2026", "#2196F3")
+        self.open_report_btn.configure(state="disabled")
+        self.open_folder_btn.configure(state="disabled")
+        self.last_html_report = None
+        self.last_json_report = None
 
         thread = threading.Thread(target=self._run_pipeline_thread, daemon=True)
         thread.start()
@@ -256,7 +283,7 @@ class PipelineGUI:
                     "Cleared previous thumbnails: %s", thumbs_dir,
                 )
 
-            run_pipeline(
+            summary = run_pipeline(
                 batch_dir=batch_dir,
                 config=config,
                 thresholds=thresholds,
@@ -264,6 +291,13 @@ class PipelineGUI:
                 auto_correct=self.auto_correct_var.get(),
                 tier=self.tier_var.get(),
             )
+
+            # Store report paths for the "Open Report" buttons
+            if summary.get("qc_report_html"):
+                self.last_html_report = Path(summary["qc_report_html"])
+            if summary.get("qc_report_json"):
+                self.last_json_report = Path(summary["qc_report_json"])
+
             self.root.event_generate("<<PipelineDone>>")
 
         except SystemExit:
@@ -302,14 +336,20 @@ class PipelineGUI:
         self.project_btn.configure(state=state)
         self.browse_btn.configure(state=state)
         self.run_btn.configure(state=state)
-        self.tier_combo.configure(state=readonly_state)
         self.qc_only_chk.configure(state=state)
-        self.auto_correct_chk.configure(state=state)
         self.config_entry.configure(state=state)
         self.config_btn.configure(state=state)
         self.thresh_entry.configure(state=state)
         self.thresh_btn.configure(state=state)
         self.running = not enabled
+
+        # Respect QC Only state when re-enabling
+        if enabled and self.qc_only_var.get():
+            self.auto_correct_chk.configure(state="disabled")
+            self.tier_combo.configure(state="disabled")
+        else:
+            self.auto_correct_chk.configure(state=state)
+            self.tier_combo.configure(state=readonly_state)
 
     def _set_status(self, text: str, color: str) -> None:
         self.status_var.set(text)
@@ -318,10 +358,18 @@ class PipelineGUI:
     def _on_pipeline_done(self, _event: tk.Event) -> None:
         self._set_controls(True)
         self._set_status("Complete", "#4CAF50")
+        # Enable report buttons if reports were generated
+        if self.last_html_report and self.last_html_report.exists():
+            self.open_report_btn.configure(state="normal")
+        if self.project_var.get().strip():
+            self.open_folder_btn.configure(state="normal")
 
     def _on_pipeline_error(self, _event: tk.Event) -> None:
         self._set_controls(True)
         self._set_status("Error", "#F44336")
+        # Still enable folder button so user can inspect partial output
+        if self.project_var.get().strip():
+            self.open_folder_btn.configure(state="normal")
 
 
 def main() -> None:
