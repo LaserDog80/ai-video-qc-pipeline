@@ -101,7 +101,7 @@ class PipelineGUI:
         # Auto-correct
         self.auto_correct_var = tk.BooleanVar(value=True)
         self.auto_correct_chk = ttk.Checkbutton(
-            frame_opts, text="Auto-Correct", variable=self.auto_correct_var,
+            frame_opts, text="Auto-Fix Issues", variable=self.auto_correct_var,
         )
         self.auto_correct_chk.grid(row=0, column=3, padx=16, pady=4)
 
