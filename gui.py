@@ -90,6 +90,7 @@ class PipelineGUI:
 
         # QC Only
         self.qc_only_var = tk.BooleanVar(value=False)
+        self.qc_only_var.trace_add("write", self._on_qc_only_changed)
         self.qc_only_chk = ttk.Checkbutton(frame_opts, text="QC Only", variable=self.qc_only_var)
         self.qc_only_chk.grid(row=0, column=2, padx=16, pady=4)
 
@@ -151,6 +152,16 @@ class PipelineGUI:
         self.log_text.pack(side="left", fill="both", expand=True, padx=(4, 0), pady=4)
 
     # ------------------------------------------------------------ Actions
+
+    def _on_qc_only_changed(self, *_args: object) -> None:
+        """Disable Auto-Correct and Tier when QC Only is checked."""
+        if self.qc_only_var.get():
+            self.auto_correct_var.set(False)
+            self.auto_correct_chk.configure(state="disabled")
+            self.tier_combo.configure(state="disabled")
+        else:
+            self.auto_correct_chk.configure(state="normal")
+            self.tier_combo.configure(state="readonly")
 
     def _browse_project(self) -> None:
         path = filedialog.askdirectory(title="Select project folder for outputs")

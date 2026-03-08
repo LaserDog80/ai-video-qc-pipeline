@@ -179,7 +179,8 @@ def run_pipeline(
 
     # Stage 3: Standard Log Conversion
     if tier in ("standard", "both"):
-        lut_path = root / config.lut_standard
+        # LUT files ship with the app, so resolve relative to app_root
+        lut_path = config.app_root / config.lut_standard
         if not lut_path.exists():
             logger.warning(
                 "Standard LUT not found at %s — skipping log conversion. "

@@ -51,6 +51,8 @@ For log conversion, you need a Rec.709-to-log .cube LUT file. The recommended op
 config/luts/rec709_to_log.cube
 ```
 
+LUT files are resolved relative to the **app directory** (where the code lives), not the project folder. This means you only need one copy of your LUTs regardless of how many project folders you use — the pipeline will always find them in the app's `config/luts/` directory.
+
 ## Usage
 
 ### GUI (Recommended for Testers)
