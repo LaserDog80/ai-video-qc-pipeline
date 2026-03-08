@@ -520,11 +520,11 @@ def extract_thumbnail(
 ) -> Optional[Path]:
     """Extract a single frame as JPEG at the given timecode."""
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    # FFmpeg -ss doesn't accept drop-frame semicolons — convert to colons
-    seek_time = timecode.replace(";", ":")
+    # Convert HH:MM:SS;FF timecode to fractional seconds for ffmpeg -ss
+    seek_time = _timecode_to_seconds(timecode)
     cmd = [
         "ffmpeg", "-hide_banner", "-y",
-        "-ss", seek_time,
+        "-ss", f"{seek_time:.4f}",
         "-i", str(filepath),
         "-frames:v", "1",
         "-q:v", str(quality),
@@ -587,3 +587,14 @@ def _seconds_to_timecode(seconds: float, fps: float = 25.0) -> str:
     mins = (total_seconds // 60) % 60
     hours = total_seconds // 3600
     return f"{hours:02d}:{mins:02d}:{secs:02d};{frames:02d}"
+
+
+def _timecode_to_seconds(timecode: str, fps: float = 25.0) -> float:
+    """Convert HH:MM:SS;FF timecode string back to fractional seconds."""
+    tc = timecode.replace(";", ":")
+    parts = tc.split(":")
+    hours = int(parts[0])
+    mins = int(parts[1])
+    secs = int(parts[2])
+    frames = int(parts[3]) if len(parts) > 3 else 0
+    return hours * 3600 + mins * 60 + secs + frames / fps
